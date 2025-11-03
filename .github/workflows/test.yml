@@ -1,0 +1,43 @@
+name: Build and push to GCR
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  IMAGE_NAME: ${{ secrets.IMAGE_NAME }}    # 예: my-service
+  GCP_PROJECT: ${{ secrets.GCP_PROJECT }}  # GCP 프로젝트 ID
+  GCR_HOST: gcr.io                          # 또는 asia.gcr.io, us.gcr.io 등
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up gcloud (authenticate)
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}  # JSON 텍스트 형태
+          project_id: ${{ secrets.GCP_PROJECT }}
+
+      - name: Configure docker to use gcloud
+        run: |
+          gcloud --quiet auth configure-docker ${GCR_HOST}
+
+      - name: Build Docker image
+        run: |
+          IMAGE_TAG=${GCR_HOST}/${GCP_PROJECT}/${IMAGE_NAME}:${GITHUB_SHA::8}
+          docker build -t $IMAGE_TAG .
+          echo "Built $IMAGE_TAG"
+
+      - name: Push Docker image to GCR
+        run: |
+          IMAGE_TAG=${GCR_HOST}/${GCP_PROJECT}/${IMAGE_NAME}:${GITHUB_SHA::8}
+          docker push $IMAGE_TAG
+          echo "Pushed $IMAGE_TAG"
+
+      - name: Output image tag
+        run: echo "IMAGE=${GCR_HOST}/${GCP_PROJECT}/${IMAGE_NAME}:${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
