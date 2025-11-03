@@ -20,7 +20,7 @@ jobs:
       - name: Set up gcloud (authenticate)
         uses: google-github-actions/setup-gcloud@v1
         with:
-          service_account_key: ${{ secrets.GCR_Service_Account }}  # JSON 텍스트 형태
+          service_account_key: ${{ secrets.GCR_SERVICE_ACCOUNT }}  # JSON 텍스트 형태
           project_id: flowing-lead-308309
 
       - name: Configure docker to use gcloud
