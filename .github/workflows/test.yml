@@ -1,43 +1,39 @@
-name: Build and push to GCR
+name: Build & Push to Artifact Registry
 
 on:
   push:
     branches: [ "main" ]
 
 env:
-  IMAGE_NAME: cloud-run-source-deploy    # 예: my-service
-  GCP_PROJECT: flowing-lead-308309  # GCP 프로젝트 ID
-  GCR_HOST: asia-northeast3-docker.pkg.dev  # 또는 asia.gcr.io, us.gcr.io 등
+  REGION: asia-northeast3
+  REPOSITORY: cloud-run-source-deploy
+  PROJECT_ID: flowing-lead-308309
+  IMAGE_NAME: my-service  # 예: my-service
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Set up gcloud (authenticate)
-        uses: google-github-actions/setup-gcloud@v1
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          service_account_key: ${{ secrets.GCR_SERVICE_ACCOUNT }}  # JSON 텍스트 형태
-          project_id: flowing-lead-308309
+          credentials_json: ${{ secrets.GCR_SERVICE_ACCOUNT }}
 
-      - name: Configure docker to use gcloud
+      - name: Configure Docker for Artifact Registry
         run: |
-          gcloud auth configure-docker asia-northeast3-docker.pkg.dev
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       - name: Build Docker image
         run: |
-          IMAGE_TAG=${GCR_HOST}/${GCP_PROJECT}/${IMAGE_NAME}:${GITHUB_SHA::8}
-          docker build -t $IMAGE_TAG .
-          echo "Built $IMAGE_TAG"
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${GITHUB_SHA::8}"
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+          docker build -t $IMAGE .
 
-      - name: Push Docker image to GCR
+      - name: Push to Artifact Registry
         run: |
-          IMAGE_TAG=${GCR_HOST}/${GCP_PROJECT}/${IMAGE_NAME}:${GITHUB_SHA::8}
-          docker push $IMAGE_TAG
-          echo "Pushed $IMAGE_TAG"
-
-      - name: Output image tag
-        run: echo "IMAGE=${GCR_HOST}/${GCP_PROJECT}/${IMAGE_NAME}:${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+          docker push $IMAGE
+          echo "✅ Successfully pushed: $IMAGE"
