@@ -1,0 +1,23 @@
+apiVersion: skaffold/v4
+kind: Config
+metadata:
+  name: my-service
+build:
+  artifacts:
+    - image: asia-northeast3-docker.pkg.dev/flowing-lead-308309/cloud-run-source-deploy/my-service
+      context: .
+      docker:
+        dockerfile: Dockerfile
+  tagPolicy:
+    gitCommit: {}
+  cluster:
+    namespace: default
+deploy:
+  googleCloudRun:
+    projectId: flowing-lead-308309
+    region: asia-northeast3
+    serviceName: my-service
+    allowUnauthenticated: true
+    traffic:
+      - latestRevision: true
+        percent: 100
